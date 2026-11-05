@@ -1,0 +1,27 @@
+Dev Fakename (fictional sample)
+DevOps / Platform Engineer
+dev.fakename@example.com | 555.010.0128 | linkedin.com/in/dev-fakename-example
+
+Summary
+Platform engineer focused on reliable delivery pipelines and observable infrastructure.
+Golang and Python for tooling; Terraform for everything else.
+
+Experience
+Platform Engineer, Notreal Cloud Services (2020 - Present)
+* Migrated 25 services from VMs to Kubernetes (k8s) with Helm charts, cutting deploy time from 40 to 8 minutes.
+* Wrote Terraform modules for AWS (EC2, S3, Lambda) used by 9 product teams.
+* Built CI/CD pipelines in Jenkins and later GitLab CI, enabling 30+ deploys per day.
+* Set up Prometheus and Grafana alerting that reduced mean time to recovery by 45%.
+* Led an on-call rotation of 6 engineers and wrote the incident runbooks.
+
+Systems Administrator, Placeholder Hosting (2017 - 2020)
+* Managed 120 Linux servers with Ansible and Bash scripts.
+* Configured Nginx reverse proxies and Redis caches for customer sites.
+* Monitored MySQL replication and handled backups.
+
+Skills
+Kubernetes, Docker, Terraform, Ansible, AWS, Linux, Bash, Python, Go, Jenkins, GitLab CI,
+Prometheus, Grafana, Nginx, Redis, MySQL, Git
+
+Education
+Diploma in Computer Engineering, Example Polytechnic, 2017

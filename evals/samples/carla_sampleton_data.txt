@@ -1,0 +1,29 @@
+CARLA SAMPLETON (fictional sample)
+Data Analyst | carla.sampleton@example.com | +1 555 010 0193
+
+PROFILE
+Data analyst who turns messy spreadsheets into decisions. Experienced with SQL, Python and
+dashboarding tools, and comfortable presenting findings to non-technical stakeholders.
+
+CORE COMPETENCIES
+SQL, Python (Pandas, Matplotlib, Seaborn), Excel, Power BI, Tableau, statistical analysis,
+A/B testing, data cleaning, stakeholder management, attention to detail
+
+EXPERIENCE
+Data Analyst, Hypothetical Retail Group (2020 - Present)
+- Designed 12 Power BI dashboards used weekly by regional managers.
+- Analysed A/B tests on pricing pages; the winning variant lifted revenue per visitor by 5%.
+- Automated a monthly Excel report with Python, saving 10 hours per month.
+- Wrote SQL queries against a Snowflake warehouse to track 30+ KPIs.
+- Presented quarterly insights to leadership and trained 6 colleagues on Tableau.
+
+Operations Assistant, Example Logistics (2018 - 2020)
+- Cleaned shipment records and reduced duplicate entries by 22%.
+- Maintained inventory sheets in Excel for 3 warehouses.
+
+EDUCATION
+B.A. Economics, Sample State University, 2018
+Coursework: Statistics, Econometrics
+
+CERTIFICATIONS
+Fictional Data Analytics Certificate, 2021

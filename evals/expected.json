@@ -1,0 +1,26 @@
+{
+  "_comment": "Hand-labelled skills each fictional resume demonstrates, using taxonomy names. Labelled by reading the resume, not by running the extractor, so misses and false positives are real.",
+  "samples": {
+    "ada_testwell_ml.txt": [
+      "Python", "SQL", "Bash", "Machine Learning", "Natural Language Processing", "LLMs",
+      "PyTorch", "scikit-learn", "Hugging Face", "LangChain", "RAG", "Prompt Engineering",
+      "Pandas", "NumPy", "Jupyter", "Docker", "FastAPI", "AWS", "GitHub Actions",
+      "PostgreSQL", "Pinecone", "Vector Databases", "Mentoring"
+    ],
+    "bruno_placeholder_frontend.txt": [
+      "JavaScript", "TypeScript", "HTML", "CSS", "React", "Next.js", "Redux", "Tailwind CSS",
+      "Jest", "Cypress", "Git", "Vite", "Webpack", "jQuery", "Node.js", "GraphQL", "REST APIs",
+      "Figma", "Accessibility", "Responsive Design", "Communication", "Collaboration"
+    ],
+    "carla_sampleton_data.txt": [
+      "SQL", "Python", "Pandas", "Matplotlib", "Seaborn", "Excel", "Power BI", "Tableau",
+      "Statistics", "A/B Testing", "Data Cleaning", "Snowflake", "Stakeholder Management",
+      "Attention to Detail", "Presentation Skills"
+    ],
+    "dev_fakename_devops.txt": [
+      "Go", "Python", "Bash", "Terraform", "Kubernetes", "Helm", "Docker", "AWS", "Amazon EC2",
+      "Amazon S3", "AWS Lambda", "CI/CD", "Jenkins", "GitLab CI", "Git", "Prometheus",
+      "Grafana", "Linux", "Ansible", "Nginx", "Redis", "MySQL"
+    ]
+  }
+}

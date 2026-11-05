@@ -1,0 +1,28 @@
+Bruno Placeholder (fictional sample)
+Frontend Developer
+bruno.placeholder@example.com  ·  555-010-0177  ·  https://example.com/bruno
+
+Professional Summary
+Frontend developer who enjoys turning Figma designs into fast, accessible interfaces.
+Strong communication skills and a habit of writing tests before shipping.
+
+Technical Skills
+JS, TypeScript, HTML5, CSS3, React, Next.js, Redux, Tailwind CSS, Jest, Cypress, Git, Vite
+
+Work Experience
+Frontend Developer, Fictional Commerce Co. (2021 - Present)
+- Rebuilt the checkout flow in React and TypeScript, raising conversion by 8%.
+- Reduced bundle size by 40% after migrating from Webpack to Vite.
+- Introduced Jest and Cypress tests, growing coverage from 20% to 75%.
+- Improved Lighthouse accessibility score to 98 by fixing WCAG contrast and focus issues.
+- Collaborated with designers in Figma and backend engineers on REST APIs.
+
+Junior Web Developer, Sample Studio (2019 - 2021)
+- Developed 15 marketing pages with responsive design using HTML, CSS and jQuery.
+- Maintained a Node.js build script used by 4 teams.
+
+Projects
+Recipe Finder - Next.js app with server rendering and a GraphQL API.
+
+Education
+B.Sc. Information Technology, Example University, 2019

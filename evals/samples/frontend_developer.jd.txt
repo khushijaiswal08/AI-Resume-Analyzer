@@ -1,0 +1,10 @@
+Frontend Developer (fictional job description)
+Sample Web Agency is looking for a frontend developer.
+
+You will
+- Build product UI with React and TypeScript.
+- Write HTML and CSS that follows accessibility best practices.
+- Test with Jest and Cypress; ship through GitHub Actions.
+- Work with designers in Figma and consume GraphQL and REST APIs.
+
+Bonus: Next.js, Tailwind CSS, Storybook, teamwork across time zones.

@@ -1,0 +1,11 @@
+Data Analyst (fictional job description)
+Placeholder Finance Ltd. needs an analyst to support the growth team.
+
+Must have
+- Advanced SQL and Excel.
+- Dashboarding in Tableau or Power BI.
+- Python with Pandas for analysis.
+- Statistics and A/B testing experience.
+
+Nice to have
+- dbt, BigQuery, Looker, stakeholder management.

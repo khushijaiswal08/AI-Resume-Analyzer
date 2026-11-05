@@ -1,0 +1,12 @@
+Machine Learning Engineer (fictional job description)
+Example AI Corp is hiring an ML engineer to build LLM features.
+
+Requirements
+- Strong Python and SQL.
+- Experience with PyTorch or TensorFlow and the Hugging Face ecosystem.
+- Built RAG pipelines with LangChain or LlamaIndex and a vector database.
+- Comfortable shipping APIs with FastAPI and Docker on AWS or Google Cloud.
+- Experience with MLOps tooling such as MLflow.
+
+Nice to have
+- Kubernetes, Airflow, prompt engineering, clear communication.

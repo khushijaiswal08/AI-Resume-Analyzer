@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        # No GEMINI_API_KEY here on purpose: the suite is fully offline (FakeLLM).
+        run: pytest
+
+      - name: Skill-extraction eval
+        # Fails the build if overall skill-extraction F1 on the synthetic samples drops below 0.90.
+        run: python scripts/run_eval.py --min-f1 0.90

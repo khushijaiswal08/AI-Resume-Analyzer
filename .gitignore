@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- AI Resume Analyzer (project-specific) ---
+# Secrets: never commit real keys. Only the empty template is tracked.
+.env
+.env.*
+!.env.example
+.venv/
+# Local uploads/outputs created while experimenting
+uploads/
+*.analysis.json

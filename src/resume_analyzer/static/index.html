@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Resume Analyzer</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --border: #e2e5eb;
+    --accent: #3b5bdb; --good: #2b8a3e; --warn: #c77700; --bad: #c92a2a; --chip: #eef1fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b1f29; --text: #e6e8ee; --muted: #9aa3b5; --border: #2c3240;
+      --accent: #7c97ff; --good: #51cf66; --warn: #fcc419; --bad: #ff6b6b; --chip: #252b3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .lede { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+          padding: 18px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type=file], textarea { width: 100%; font: inherit; color: var(--text);
+          background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  textarea { min-height: 120px; resize: vertical; }
+  .row { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+           padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  button:disabled { opacity: .6; cursor: progress; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .error { color: var(--bad); font-weight: 600; }
+  .score { display: flex; align-items: center; gap: 18px; }
+  .ring { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center;
+          font-size: 28px; font-weight: 700; flex: none;
+          background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--border) 0); }
+  .ring span { background: var(--card); width: 76px; height: 76px; border-radius: 50%;
+               display: grid; place-items: center; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; padding: 8px 6px; border-top: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .bar { height: 6px; background: var(--border); border-radius: 3px; min-width: 70px; margin-top: 6px; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+  .chip.good { outline: 1px solid var(--good); }
+  .chip.bad { outline: 1px solid var(--bad); }
+  .cat { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  .tag { font-size: 12px; color: var(--muted); }
+  .warn { color: var(--warn); }
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 24px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI Resume Analyzer</h1>
+  <p class="lede">Upload a resume to get skills, an explainable ATS-style score and job-description
+    match. Deterministic first; AI only adds suggestions and interview questions.</p>
+
+  <form id="form" class="card">
+    <div class="row">
+      <div>
+        <label for="resume">Resume (PDF, DOCX or TXT, max 5 MB)</label>
+        <input id="resume" name="resume" type="file" accept=".pdf,.docx,.txt" required>
+        <p class="hint">Processed in memory and never stored. Contact details are redacted before
+          any AI call.</p>
+      </div>
+      <div>
+        <label for="jd">Job description (optional)</label>
+        <textarea id="jd" name="job_description" maxlength="20000"
+          placeholder="Paste a job description to see matched and missing skills"></textarea>
+      </div>
+    </div>
+    <button id="submit" type="submit">Analyze</button>
+    <span id="status" class="hint" role="status"></span>
+  </form>
+
+  <div id="results" hidden>
+    <section class="card">
+      <div class="score">
+        <div class="ring" id="ring"><span id="total">0</span></div>
+        <div>
+          <h2>ATS-style score</h2>
+          <p class="hint">A transparent heuristic built for this project, not any real ATS vendor's
+            algorithm. The AI never changes this score.</p>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Criterion</th><th>Points</th><th>Why</th></tr></thead>
+        <tbody id="breakdown"></tbody>
+      </table>
+    </section>
+
+    <div class="row">
+      <section class="card"><h2>Skills</h2><div id="skills"></div>
+        <p class="hint" id="meta"></p></section>
+      <section class="card" id="jdCard"><h2>Job description match</h2><div id="jdMatch"></div></section>
+    </div>
+
+    <section class="card"><h2>AI insights</h2><div id="llm"></div></section>
+    <section class="card" id="warnCard"><h2>Notes</h2><ul id="warnings" class="warn"></ul></section>
+  </div>
+
+  <footer>Built by Khushi Jaiswal &middot; <a href="/docs">API docs</a></footer>
+</main>
+
+<script>
+  // All server data is inserted with textContent (never innerHTML) so resume text can't inject HTML.
+  const $ = (id) => document.getElementById(id);
+  function el(tag, text, cls) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (cls) node.className = cls;
+    return node;
+  }
+  function chips(items, cls) {
+    const box = el("div", undefined, "chips");
+    items.forEach((item) => box.appendChild(el("span", item, "chip " + (cls || ""))));
+    return box;
+  }
+
+  $("form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("submit");
+    button.disabled = true;
+    // Hide the previous result so a failed request never shows an old score next to the error.
+    $("results").hidden = true;
+    $("status").className = "hint";
+    $("status").textContent = " Analyzing…";
+    try {
+      const response = await fetch("/api/analyze", { method: "POST", body: new FormData(event.target) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Request failed");
+      render(body);
+      $("status").textContent = "";
+    } catch (error) {
+      $("status").className = "error";
+      $("status").textContent = " " + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  function render(r) {
+    $("results").hidden = false;
+    $("total").textContent = r.ats_score.total;
+    $("ring").style.setProperty("--p", r.ats_score.total);
+
+    const rows = $("breakdown");
+    rows.replaceChildren();
+    r.ats_score.breakdown.forEach((c) => {
+      const tr = el("tr");
+      tr.appendChild(el("td", c.criterion));
+      const pts = el("td", `${c.score} / ${c.max}`);
+      const bar = el("div", undefined, "bar");
+      const fill = el("i");
+      fill.style.width = `${c.max ? (100 * c.score) / c.max : 0}%`;
+      bar.appendChild(fill);
+      pts.appendChild(bar);
+      tr.appendChild(pts);
+      tr.appendChild(el("td", c.reason));
+      rows.appendChild(tr);
+    });
+
+    const skills = $("skills");
+    skills.replaceChildren();
+    const categories = Object.entries(r.skills);
+    if (!categories.length) skills.appendChild(el("p", "No skills from the taxonomy were found.", "hint"));
+    categories.forEach(([category, names]) => {
+      skills.appendChild(el("div", category.replace("_", " / "), "cat"));
+      skills.appendChild(chips(names));
+    });
+    $("meta").textContent = `Sections: ${r.sections.join(", ") || "none"} · ${r.word_count} words · ` +
+      `redacted ${r.redaction.emails} email(s), ${r.redaction.phones} phone(s), ${r.redaction.urls} URL(s)`;
+
+    const jd = $("jdMatch");
+    jd.replaceChildren();
+    if (r.jd_match) {
+      jd.appendChild(el("p", `${r.jd_match.match_percent}% of the job's skills appear in the resume.`));
+      jd.appendChild(el("div", "Matched", "cat"));
+      jd.appendChild(chips(r.jd_match.matched, "good"));
+      jd.appendChild(el("div", "Missing", "cat"));
+      jd.appendChild(chips(r.jd_match.missing, "bad"));
+    } else {
+      jd.appendChild(el("p", "Paste a job description to compare skills.", "hint"));
+    }
+
+    const llm = $("llm");
+    llm.replaceChildren();
+    if (!r.llm.used) {
+      llm.appendChild(el("p", r.llm.reason || "AI insights were not generated.", "hint"));
+    } else {
+      if (r.llm.summary) llm.appendChild(el("p", r.llm.summary));
+      if (r.llm.suggestions.length) {
+        llm.appendChild(el("div", "Suggestions", "cat"));
+        const ul = el("ul");
+        r.llm.suggestions.forEach((s) => ul.appendChild(el("li", s)));
+        llm.appendChild(ul);
+      }
+      if (r.llm.interview_questions.length) {
+        llm.appendChild(el("div", "Interview questions", "cat"));
+        const ol = el("ol");
+        r.llm.interview_questions.forEach((q) => {
+          const li = el("li", q.question + " ");
+          li.appendChild(el("span", `(${q.skill}, ${q.difficulty})`, "tag"));
+          ol.appendChild(li);
+        });
+        llm.appendChild(ol);
+      }
+    }
+
+    const warnings = $("warnings");
+    warnings.replaceChildren();
+    r.warnings.forEach((w) => warnings.appendChild(el("li", w)));
+    $("warnCard").hidden = r.warnings.length === 0;
+  }
+</script>
+</body>
+</html>

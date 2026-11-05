@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resume-analyzer"
+version = "0.1.0"
+description = "Explainable resume analysis: deterministic skill extraction and ATS-style scoring, with a guarded Gemini layer for suggestions and interview questions."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Khushi Jaiswal" }]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pypdf>=4.2",
+    "python-docx>=1.1",
+    "google-genai>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "reportlab>=4.2",
+]
+
+[project.scripts]
+resume-analyzer = "resume_analyzer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+resume_analyzer = ["data/*.json", "static/*.html"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# SIM905: we deliberately write long word lists as one readable """...""".split() block.
+ignore = ["SIM905"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's File()/Form() defaults are the documented pattern.
+extend-immutable-calls = ["fastapi.File", "fastapi.Form"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
