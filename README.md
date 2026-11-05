@@ -79,8 +79,14 @@ Details, guardrail table and design decisions: [docs/ARCHITECTURE.md](docs/ARCHI
 
 ## Screenshots
 
-Screenshots to be added: `docs/screenshots/home.png` (upload form) and
-`docs/screenshots/results.png` (score, skills and JD match).
+**Upload form**
+
+![Upload form: resume file and optional job description](docs/screenshots/home.png)
+
+**Results** for a fictional sample resume against a sample ML-engineer JD (no API key set, so
+AI insights are marked as not used)
+
+![Results: explainable 92/100 score, extracted skills and job-description match](docs/screenshots/results.png)
 
 ## Live demo
 
