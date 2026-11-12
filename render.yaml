@@ -1,0 +1,21 @@
+# Render Blueprint for the AI Resume Analyzer (free web service, built from the Dockerfile).
+# UNTESTED: written without Docker or a Render account available. See DEPLOY.md.
+services:
+  - type: web
+    name: ai-resume-analyzer
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      # Render sets PORT itself; the Dockerfile CMD reads it.
+      - key: TRUST_PROXY
+        value: "true"   # behind Render's proxy: count each visitor's IP, not the proxy's
+      - key: RATE_LIMIT_MAX
+        value: "20"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "600"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      # Optional secret. Paste the value in the Render dashboard; never commit it.
+      - key: GEMINI_API_KEY
+        sync: false

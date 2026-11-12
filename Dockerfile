@@ -22,4 +22,6 @@ USER appuser
 
 EXPOSE 8000
 # GEMINI_API_KEY is optional and must be passed at runtime (docker run -e ...), never baked in.
-CMD ["uvicorn", "resume_analyzer.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Hosts such as Render set PORT; locally it falls back to 8000. WEB_CONCURRENCY (uvicorn
+# workers) is read by uvicorn itself; leave it unset on a free single-CPU instance.
+CMD ["sh", "-c", "uvicorn resume_analyzer.api:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -1,6 +1,7 @@
 """Detect which standard resume sections are present, based on heading lines."""
 
 import re
+from dataclasses import dataclass
 
 # Canonical section name -> headings that mean the same thing.
 SECTION_ALIASES: dict[str, tuple[str, ...]] = {
@@ -82,3 +83,38 @@ def detect_sections(text: str) -> list[str]:
             if name:
                 found.add(name)
     return [name for name in SECTION_ORDER if name in found]
+
+
+@dataclass(frozen=True)
+class Line:
+    """One non-blank line of the resume with its position in the original text."""
+
+    start: int  # offset of the first non-space character
+    end: int  # offset just after the last non-space character
+    text: str  # the stripped line
+    section: str | None  # canonical section the line belongs to (None before any heading)
+    is_heading: bool
+
+
+def split_lines(text: str) -> list[Line]:
+    """Split `text` into non-blank lines, each tagged with the section it sits in.
+
+    Offsets index into `text`, so the UI can highlight `text[start:end]`. A line such as
+    "Skills: Python, SQL" is both a heading and content of the skills section; it is tagged
+    with that section and `is_heading=True`.
+    """
+    lines: list[Line] = []
+    current: str | None = None
+    position = 0
+    for raw in text.splitlines(keepends=True):
+        stripped = raw.strip()
+        if stripped:
+            start = position + (len(raw) - len(raw.lstrip()))
+            names = [
+                _HEADING_LOOKUP[c] for c in _heading_candidates(stripped) if c in _HEADING_LOOKUP
+            ]
+            if names:
+                current = names[0]
+            lines.append(Line(start, start + len(stripped), stripped, current, bool(names)))
+        position += len(raw)
+    return lines

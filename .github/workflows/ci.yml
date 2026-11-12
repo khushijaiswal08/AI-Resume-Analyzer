@@ -24,10 +24,14 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Format check
+        run: ruff format --check .
+
       - name: Test
         # No GEMINI_API_KEY here on purpose: the suite is fully offline (FakeLLM).
         run: pytest
 
-      - name: Skill-extraction eval
-        # Fails the build if overall skill-extraction F1 on the synthetic samples drops below 0.90.
+      - name: Evaluation
+        # Fails the build if skill-extraction F1 on the synthetic samples drops below 0.90, or if
+        # the v2 layers stop separating the strong resumes from the weak/messy ones.
         run: python scripts/run_eval.py --min-f1 0.90

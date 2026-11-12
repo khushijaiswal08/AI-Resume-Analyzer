@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 20
     # Extra attempts after the first one when the LLM returns invalid JSON.
     llm_max_retries: int = 2
+    # Deployment. PORT is set by hosts such as Render; rate limits protect a public demo.
+    port: int = 8000
+    rate_limit_max: int = 20  # analyses per window per client; 0 turns the limit off
+    rate_limit_window_seconds: int = 600
+    trust_proxy: bool = False  # believe X-Forwarded-For (only behind a proxy you control)
+    cors_origins: str = ""  # comma-separated origins; empty = CORS disabled (same-origin only)
 
     @field_validator("gemini_api_key", mode="before")
     @classmethod
@@ -28,6 +34,11 @@ class Settings(BaseSettings):
         if value is None or (isinstance(value, str) and not value.strip()):
             return None
         return value
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """`cors_origins` as a clean list; empty when CORS is disabled."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def max_upload_bytes(self) -> int:

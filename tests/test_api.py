@@ -21,15 +21,19 @@ def test_index_page(client):
 
 
 def test_health_reports_llm_configuration(client, client_without_llm):
-    assert client.get("/api/health").json() == {"status": "ok", "llm_configured": True}
-    assert client_without_llm.get("/api/health").json() == {"status": "ok", "llm_configured": False}
+    from resume_analyzer import __version__
+
+    base = {"status": "ok", "version": __version__}
+    assert client.get("/api/health").json() == {**base, "llm_configured": True}
+    assert client_without_llm.get("/api/health").json() == {**base, "llm_configured": False}
 
 
 def test_analyze_txt_with_jd_and_llm(client):
     response = post(client, SAMPLE_RESUME.encode(), jd=SAMPLE_JD)
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {
+    # v1 fields are unchanged; v2 only adds fields (see tests/test_api_v2.py).
+    v1_fields = {
         "skills",
         "sections",
         "word_count",
@@ -39,6 +43,7 @@ def test_analyze_txt_with_jd_and_llm(client):
         "redaction",
         "warnings",
     }
+    assert v1_fields <= set(body)
     assert "Python" in body["skills"]["languages"]
     assert body["jd_match"]["match_percent"] == 60
     assert body["llm"]["used"] is True

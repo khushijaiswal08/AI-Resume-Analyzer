@@ -4,6 +4,19 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from resume_analyzer.schemas import (
+    ATSChecks,
+    BulletReport,
+    BulletRewrite,
+    CriterionEvidence,
+    JDAnalysis,
+    Readability,
+    Readiness,
+    RedactedPreview,
+    RoleFit,
+    SkillEvidence,
+)
+
 Difficulty = Literal["easy", "medium", "hard"]
 
 
@@ -45,12 +58,24 @@ class InterviewQuestion(BaseModel):
         return value.strip().lower() if isinstance(value, str) else value
 
 
+class RewriteSuggestion(BaseModel):
+    """The LLM's rewrite of one bullet we sent it. `original` must match a bullet we sent."""
+
+    original: str
+    rewrite: str
+
+
 class LLMInsights(BaseModel):
-    """The exact JSON shape we ask the LLM for. Anything else fails validation and is retried."""
+    """The exact JSON shape we ask the LLM for. Anything else fails validation and is retried.
+
+    `first_impression` and `bullet_rewrites` are optional so older/shorter answers stay valid.
+    """
 
     summary: str = ""
     suggestions: list[str] = Field(default_factory=list)
     interview_questions: list[InterviewQuestion] = Field(default_factory=list)
+    first_impression: str = ""
+    bullet_rewrites: list[RewriteSuggestion] = Field(default_factory=list)
 
 
 class LLMResult(BaseModel):
@@ -61,6 +86,8 @@ class LLMResult(BaseModel):
     summary: str | None = None
     suggestions: list[str] = Field(default_factory=list)
     interview_questions: list[InterviewQuestion] = Field(default_factory=list)
+    first_impression: str | None = None  # 3-sentence "recruiter's first impression"
+    bullet_rewrites: list[BulletRewrite] = Field(default_factory=list)  # grounded rewrites only
 
 
 class RedactionCounts(BaseModel):
@@ -82,6 +109,17 @@ class AnalysisResult(BaseModel):
     llm: LLMResult
     redaction: RedactionCounts
     warnings: list[str] = Field(default_factory=list)
+    # --- v2 additions (all deterministic except llm.*; offsets index into resume_text) ---
+    resume_text: str = ""
+    bullets: BulletReport | None = None
+    ats_checks: ATSChecks | None = None
+    jd_analysis: JDAnalysis | None = None  # only when a job description was given
+    role_fit: RoleFit | None = None  # only when a role was chosen
+    readability: Readability | None = None
+    skill_evidence: SkillEvidence | None = None
+    evidence: list[CriterionEvidence] = Field(default_factory=list)
+    redacted_preview: RedactedPreview | None = None
+    readiness: Readiness | None = None
 
 
 class HealthResponse(BaseModel):
@@ -89,3 +127,4 @@ class HealthResponse(BaseModel):
 
     status: str = "ok"
     llm_configured: bool
+    version: str = ""

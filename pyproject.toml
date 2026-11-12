@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "resume-analyzer"
-version = "0.1.0"
+version = "2.0.0"
 description = "Explainable resume analysis: deterministic skill extraction and ATS-style scoring, with a guarded Gemini layer for suggestions and interview questions."
 readme = "README.md"
 license = "MIT"
@@ -36,7 +36,7 @@ resume-analyzer = "resume_analyzer.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-resume_analyzer = ["data/*.json", "static/*.html"]
+resume_analyzer = ["data/*.json", "data/*.txt", "static/*", "static/**/*"]
 
 [tool.ruff]
 line-length = 100

@@ -1,0 +1,11 @@
+{
+  "_comment": "Sanity bounds for the v2 layers on fictional resumes. Not gold labels: they check that the layers separate a strong resume from a weak or messy one. Paths are relative to evals/. 'non_pass' lists ATS check ids that must warn or fail.",
+  "samples": {
+    "samples/ada_testwell_ml.txt": {"jd": "samples/ml_engineer.jd.txt", "bullet_avg_min": 75, "parse_min": 80, "ats_min": 80, "jd_weighted_min": 60},
+    "samples/bruno_placeholder_frontend.txt": {"jd": "samples/frontend_developer.jd.txt", "bullet_avg_min": 70, "parse_min": 80, "ats_min": 75, "jd_weighted_min": 60},
+    "samples/carla_sampleton_data.txt": {"jd": "samples/data_analyst.jd.txt", "bullet_avg_min": 70, "parse_min": 80, "ats_min": 75, "jd_weighted_min": 60},
+    "samples/dev_fakename_devops.txt": {"bullet_avg_min": 70, "parse_min": 80, "ats_min": 75},
+    "quality_samples/weak_pat_generic.txt": {"bullet_avg_max": 50, "ats_max": 50, "readiness_max": 60},
+    "quality_samples/messy_sam_layout.txt": {"parse_max": 75, "ats_max": 50, "non_pass": ["columns", "glyphs", "date_formats", "headings"]}
+  }
+}

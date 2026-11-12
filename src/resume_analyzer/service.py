@@ -8,8 +8,15 @@ import logging
 import re
 import time
 
+from resume_analyzer.ats_checks import run_ats_checks
+from resume_analyzer.bullets import analyze_bullets
 from resume_analyzer.config import Settings
+from resume_analyzer.dates import estimate_years
+from resume_analyzer.evidence import build_evidence
+from resume_analyzer.jd import analyze_jd
 from resume_analyzer.llm.base import LLMClient, LLMError
+from resume_analyzer.llm.guard import MAX_ITEM_CHARS  # noqa: F401  (re-exported for tests)
+from resume_analyzer.llm.guard import clean as _clean
 from resume_analyzer.llm.prompts import SYSTEM_INSTRUCTION, build_analysis_prompt
 from resume_analyzer.matching import extract_jd_skills, match_skills
 from resume_analyzer.models import (
@@ -19,16 +26,23 @@ from resume_analyzer.models import (
     LLMResult,
 )
 from resume_analyzer.parsing import ParseError, extract_text
+from resume_analyzer.privacy import build_redacted_preview
+from resume_analyzer.readability import analyze_readability
+from resume_analyzer.readiness import build_readiness
 from resume_analyzer.redaction import redact
+from resume_analyzer.rewrites import ground_rewrites, pick_weakest
+from resume_analyzer.roles import get_role, role_fit
+from resume_analyzer.schemas import BulletItem
 from resume_analyzer.scoring import score_resume
-from resume_analyzer.sections import detect_sections
-from resume_analyzer.skills import extract_skills, flatten
+from resume_analyzer.sections import detect_sections, split_lines
+from resume_analyzer.skill_evidence import build_skill_evidence
+from resume_analyzer.skills import extract_skills, find_skill_mentions, flatten
 
 logger = logging.getLogger(__name__)
 
 MAX_SUGGESTIONS = 8
 MAX_QUESTIONS = 10
-MAX_ITEM_CHARS = 300
+MAX_FIRST_IMPRESSION_SENTENCES = 3
 
 NO_KEY_REASON = "LLM not configured (GEMINI_API_KEY is not set); deterministic results only."
 
@@ -37,6 +51,12 @@ class JobDescriptionTooLongError(ParseError):
     """The pasted job description is over the character limit."""
 
     status_code = 413
+
+
+class UnknownRoleError(ParseError):
+    """The `role` form field is not an id from `GET /api/roles`."""
+
+    status_code = 422
 
 
 def build_llm_client(settings: Settings) -> LLMClient | None:
@@ -59,10 +79,12 @@ def analyze_document(
     *,
     settings: Settings,
     llm_client: LLMClient | None,
+    role: str | None = None,
 ) -> AnalysisResult:
     """Analyse an uploaded file (PDF/DOCX/TXT bytes). Raises ParseError subclasses on bad input."""
     started = time.perf_counter()
     jd_text = _validate_jd(jd_text, settings.max_jd_chars)
+    role = _validate_role(role)
     parsed = extract_text(
         data,
         max_bytes=settings.max_upload_bytes,
@@ -74,7 +96,7 @@ def analyze_document(
         warnings.append(
             f"Resume text was longer than {settings.max_text_chars} characters and was truncated."
         )
-    result = analyze_text(parsed.text, jd_text, llm_client=llm_client, warnings=warnings)
+    result = analyze_text(parsed.text, jd_text, llm_client=llm_client, warnings=warnings, role=role)
     # Log sizes, counts and timings only - never resume or JD content.
     logger.info(
         "analyzed type=%s bytes=%d chars=%d words=%d skills=%d jd=%s llm_used=%s ms=%.0f",
@@ -100,21 +122,39 @@ def _validate_jd(jd_text: str | None, max_chars: int) -> str | None:
     return jd_text.strip()
 
 
+def _validate_role(role: str | None) -> str | None:
+    """Blank means no role; anything else must be a known role id."""
+    if role is None or not role.strip():
+        return None
+    role = role.strip()
+    if get_role(role) is None:
+        raise UnknownRoleError(f"Unknown role '{role[:40]}'. Use an id from GET /api/roles.")
+    return role
+
+
 def analyze_text(
     text: str,
     jd_text: str | None = None,
     *,
     llm_client: LLMClient | None = None,
     warnings: list[str] | None = None,
+    role: str | None = None,
 ) -> AnalysisResult:
-    """Run the full pipeline on already-extracted resume text."""
+    """Run the full pipeline on already-extracted resume text.
+
+    Order matters for the "LLM never changes a score" rule: every number is computed first,
+    then the LLM is asked for words, then the (already final) numbers are returned.
+    """
     warnings = list(warnings or [])
+    role = _validate_role(role)
     redacted_text, redaction = redact(text)
 
     sections = detect_sections(text)
     skills = extract_skills(text)
     skill_list = flatten(skills)
     word_count = len(text.split())
+    lines = split_lines(text)
+    mentions = find_skill_mentions(text)
 
     jd_match = None
     jd_skills: list[str] = []
@@ -147,12 +187,44 @@ def analyze_text(
         jd_match=jd_match,
     )
 
+    # --- v2 deterministic layers (pure functions, no LLM) ---
+    bullets = analyze_bullets(lines)
+    ats_checks = run_ats_checks(text, lines, sections)
+    skill_evidence = build_skill_evidence(text, mentions, lines)
+    jd_analysis = analyze_jd(jd_text, skill_evidence, estimate_years(lines)) if jd_text else None
+    role_info = get_role(role) if role else None
+    role_result = role_fit(role_info, skill_list) if role_info else None
+    readability = analyze_readability(text, bullets)
+    evidence = build_evidence(
+        text=text,
+        lines=lines,
+        sections=sections,
+        mentions=mentions,
+        ats_score=ats_score,
+        jd_match=jd_match,
+    )
+    if jd_analysis is not None and jd_analysis.weighted_percent is not None:
+        fit_percent, fit_label = jd_analysis.weighted_percent, "Job match"
+    elif role_result is not None:
+        fit_percent, fit_label = role_result.fit_percent, "Role fit"
+    else:
+        fit_percent, fit_label = None, None
+    readiness = build_readiness(
+        ats_total=ats_score.total,
+        bullet_average=bullets.average_score,
+        parse_score=ats_checks.score,
+        fit_percent=fit_percent,
+        fit_label=fit_label,
+    )
+    preview = build_redacted_preview(text, jd_text, llm_configured=llm_client is not None)
+
     llm = run_llm(
         llm_client,
         redacted_text=redacted_text,
         redacted_jd=redacted_jd,
         allowed_skills=_unique([*skill_list, *jd_skills]),
         warnings=warnings,
+        weak_bullets=pick_weakest(bullets.items),
     )
 
     return AnalysisResult(
@@ -164,6 +236,16 @@ def analyze_text(
         llm=llm,
         redaction=redaction,
         warnings=warnings,
+        resume_text=text,
+        bullets=bullets,
+        ats_checks=ats_checks,
+        jd_analysis=jd_analysis,
+        role_fit=role_result,
+        readability=readability,
+        skill_evidence=skill_evidence,
+        evidence=evidence,
+        redacted_preview=preview,
+        readiness=readiness,
     )
 
 
@@ -174,12 +256,20 @@ def run_llm(
     redacted_jd: str | None,
     allowed_skills: list[str],
     warnings: list[str],
+    weak_bullets: list[BulletItem] | None = None,
 ) -> LLMResult:
     """Ask the LLM for insights and apply guardrails. Never raises: failures become a reason."""
     if llm_client is None:
         return LLMResult(used=False, reason=NO_KEY_REASON)
 
-    prompt = build_analysis_prompt(redacted_text, redacted_jd, allowed_skills)
+    weak_bullets = weak_bullets or []
+    # Bullets come from the original text, so they are redacted before they go in the prompt.
+    prompt = build_analysis_prompt(
+        redacted_text,
+        redacted_jd,
+        allowed_skills,
+        [redact(bullet.text)[0] for bullet in weak_bullets],
+    )
     try:
         insights = llm_client.generate_json(
             prompt, LLMInsights, system_instruction=SYSTEM_INSTRUCTION
@@ -190,11 +280,14 @@ def run_llm(
         logger.exception("Unexpected LLM client failure")
         return LLMResult(used=False, reason=f"LLM unavailable ({type(exc).__name__}).")
 
-    return apply_guardrails(insights, allowed_skills, warnings)
+    return apply_guardrails(insights, allowed_skills, warnings, weak_bullets)
 
 
 def apply_guardrails(
-    insights: LLMInsights, allowed_skills: list[str], warnings: list[str]
+    insights: LLMInsights,
+    allowed_skills: list[str],
+    warnings: list[str],
+    weak_bullets: list[BulletItem] | None = None,
 ) -> LLMResult:
     """Ground, bound and re-redact LLM output before it reaches the user.
 
@@ -234,12 +327,29 @@ def apply_guardrails(
             "Removed summary sentence(s) mentioning skills not found in the resume or job "
             f"description: {_names(ungrounded_summary)}."
         )
+    impression, ungrounded_impression = _ground_summary(_clean(insights.first_impression), allowed)
+    if ungrounded_impression:
+        warnings.append(
+            "Removed first-impression sentence(s) mentioning skills not found in the resume "
+            f"or job description: {_names(ungrounded_impression)}."
+        )
+    sentences = re.split(r"(?<=[.!?])\s+", impression)
+    impression = " ".join(sentences[:MAX_FIRST_IMPRESSION_SENTENCES])
+
+    # Rewrites may only reword the bullets we sent, and may not add numbers or skills.
+    rewrites = ground_rewrites(
+        [(item.original, item.rewrite) for item in insights.bullet_rewrites],
+        weak_bullets or [],
+        warnings,
+    )
     return LLMResult(
         used=True,
         reason=None,
         summary=summary or None,
         suggestions=suggestions[:MAX_SUGGESTIONS],
         interview_questions=questions[:MAX_QUESTIONS],
+        first_impression=impression or None,
+        bullet_rewrites=rewrites,
     )
 
 
@@ -297,14 +407,6 @@ def _ground_summary(summary: str, allowed: dict[str, str]) -> tuple[str, list[st
 
 def _names(skills: list[str]) -> str:
     return ", ".join(sorted(set(skills)))
-
-
-def _clean(text: str) -> str:
-    """Trim, re-redact (defence in depth) and cap one LLM string at MAX_ITEM_CHARS."""
-    text, _ = redact(" ".join(text.split()))
-    if len(text) > MAX_ITEM_CHARS:
-        text = text[: MAX_ITEM_CHARS - 1].rstrip() + "…"
-    return text
 
 
 def _unique(items: list[str]) -> list[str]:

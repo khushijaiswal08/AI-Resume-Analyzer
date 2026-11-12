@@ -2,6 +2,7 @@
 
 import io
 import json
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -107,3 +108,11 @@ def client(settings: Settings, fake_llm: FakeLLM) -> TestClient:
 @pytest.fixture
 def client_without_llm(settings: Settings) -> TestClient:
     return TestClient(create_app(settings, llm_client=None))
+
+
+EVALS = Path(__file__).resolve().parent.parent / "evals"
+
+
+def read_eval(relative: str) -> str:
+    """Text of a fictional sample under evals/, e.g. read_eval("samples/ada_testwell_ml.txt")."""
+    return (EVALS / relative).read_text(encoding="utf-8")

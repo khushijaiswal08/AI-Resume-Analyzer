@@ -1,0 +1,15 @@
+SAM LAYOUTSON (fictional sample)
+
+★ Python   ★ SQL   ★ Docker
+Skills                     Experience
+Python, SQL, Docker        Developer at Notreal Inc.
+Git, Linux                 Jan 2021 - Mar 2023
+                           ➤ Built things for customers
+ 
+➤ Built reports with SQL and Python for 4 teams.
+➤ Wrote Docker images for 12 services.
+01/2019 - 06/2020   Intern, Placeholder Labs   |   Remote   |   Part time
+➤ Cleaned data with Pandas.
+Education
+B.Sc., Example University, 2019
+sam.layoutson@example.com   555 010 0199

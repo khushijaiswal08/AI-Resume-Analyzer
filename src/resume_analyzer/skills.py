@@ -65,15 +65,32 @@ def categories() -> list[str]:
     return list(dict.fromkeys(skill.category for skill in load_taxonomy()))
 
 
-def extract_skills(text: str) -> dict[str, list[str]]:
-    """Return {category: [skill, ...]} for every taxonomy skill mentioned in `text`.
+MAX_MENTIONS = 500  # per document; real resumes have a few dozen
 
-    Categories with no matches are omitted. Order follows the taxonomy file, so the
-    output is stable and easy to compare in tests.
+
+@dataclass(frozen=True)
+class SkillMention:
+    """One place in the text where a taxonomy skill was found."""
+
+    name: str
+    category: str
+    start: int
+    end: int
+
+
+def _blank(match: re.Match[str]) -> str:
+    return " " * len(match.group())
+
+
+def find_skill_mentions(text: str) -> list[SkillMention]:
+    """Every skill mention in `text` with character offsets, in text order.
+
+    Offsets refer to `text` itself, which is why emails and links are blanked out with
+    spaces of the same length (not removed): that keeps all positions valid.
     """
     # Emails and links are contact details, not skills: "github.com/someone/docker-tools"
     # says nothing about Docker experience.
-    text = URL_RE.sub(" ", EMAIL_RE.sub(" ", text))
+    text = URL_RE.sub(_blank, EMAIL_RE.sub(_blank, text))
 
     matches = [
         (match.start(), match.end(), skill)
@@ -83,15 +100,34 @@ def extract_skills(text: str) -> dict[str, list[str]]:
     ]
     # Longest match wins: "GitHub" inside "GitHub Actions" is part of a longer skill name,
     # not a separate mention (the same idea that keeps "Java" out of "JavaScript").
-    matches.sort(key=lambda m: m[0] - m[1])
-    kept: list[tuple[int, int]] = []
-    found_names: set[str] = set()
+    # One linear pass: sort by start (longest first on ties) and remember the furthest end seen.
+    # A later match that ends before it, or ends at the same place but starts after it, sits
+    # inside a longer match. Identical spans of two different skills are both kept.
+    matches.sort(key=lambda m: (m[0], -m[1]))
+    kept: list[tuple[int, int, Skill]] = []
+    seen: set[tuple[int, int, str]] = set()  # two patterns of one skill can hit the same span
+    furthest_end, furthest_start = -1, -1
     for start, end, skill in matches:
-        if any(s <= start and end <= e and e - s > end - start for s, e in kept):
+        if end < furthest_end or (end == furthest_end and start > furthest_start):
             continue
-        kept.append((start, end))
-        found_names.add(skill.name)
+        if (start, end, skill.name) in seen:
+            continue
+        seen.add((start, end, skill.name))
+        kept.append((start, end, skill))
+        if end > furthest_end:
+            furthest_end, furthest_start = end, start
+    if len(kept) > MAX_MENTIONS:
+        kept = kept[:MAX_MENTIONS]  # a cap keeps one huge document from monopolising the worker
+    return [SkillMention(skill.name, skill.category, start, end) for start, end, skill in kept]
 
+
+def extract_skills(text: str) -> dict[str, list[str]]:
+    """Return {category: [skill, ...]} for every taxonomy skill mentioned in `text`.
+
+    Categories with no matches are omitted. Order follows the taxonomy file, so the
+    output is stable and easy to compare in tests.
+    """
+    found_names = {mention.name for mention in find_skill_mentions(text)}
     found: dict[str, list[str]] = {}
     for skill in load_taxonomy():
         if skill.name in found_names:

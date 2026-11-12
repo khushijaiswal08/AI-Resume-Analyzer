@@ -32,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     serve = commands.add_parser("serve", help="Run the web app.")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--port", type=int, default=None, help="Default: $PORT or 8000.")
     return parser
 
 
@@ -42,7 +42,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "serve":
         import uvicorn
 
-        uvicorn.run("resume_analyzer.api:app", host=args.host, port=args.port)
+        uvicorn.run(
+            "resume_analyzer.api:app", host=args.host, port=args.port or get_settings().port
+        )
         return 0
     return _run_analyze(args)
 

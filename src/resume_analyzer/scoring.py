@@ -105,14 +105,14 @@ def _score_skills(skill_count: int) -> _Result:
     return _Result(min(1.0, skill_count / SKILLS_FOR_FULL_MARKS), reason)
 
 
+def is_quantified_line(line: str) -> bool:
+    """True if the line has a number that is not just a year (e.g. "cut costs by 30%")."""
+    return any(not _YEAR.match(number) for number in _NUMBER.findall(line))
+
+
 def count_quantified_lines(text: str) -> int:
-    """Count lines with a number that is not just a year (e.g. "cut costs by 30%")."""
-    count = 0
-    for line in _lines(text):
-        numbers = _NUMBER.findall(line)
-        if any(not _YEAR.match(number) for number in numbers):
-            count += 1
-    return count
+    """Count lines with a measurable number (see `is_quantified_line`)."""
+    return sum(is_quantified_line(line) for line in _lines(text))
 
 
 def _score_quantified(text: str) -> _Result:
@@ -124,14 +124,20 @@ def _score_quantified(text: str) -> _Result:
     return _Result(min(1.0, count / QUANTIFIED_LINES_FOR_FULL_MARKS), reason)
 
 
+def first_word(line: str) -> str:
+    """First word of a line, lowercased, without bullet glyphs or trailing punctuation."""
+    words = _BULLET_PREFIX.sub("", line).split()
+    return words[0].lower().strip(",.:;") if words else ""
+
+
+def starts_with_action_verb(line: str) -> bool:
+    """True if the line (a bullet glyph is ignored) starts with a strong action verb."""
+    return first_word(line) in ACTION_VERBS
+
+
 def count_action_verb_lines(text: str) -> int:
     """Count lines (bullets included) that start with a strong action verb."""
-    count = 0
-    for line in _lines(text):
-        words = _BULLET_PREFIX.sub("", line).split()
-        if words and words[0].lower().strip(",.:;") in ACTION_VERBS:
-            count += 1
-    return count
+    return sum(starts_with_action_verb(line) for line in _lines(text))
 
 
 def _score_action_verbs(text: str) -> _Result:

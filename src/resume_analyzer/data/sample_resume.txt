@@ -1,0 +1,34 @@
+ADA TESTWELL (fictional sample)
+ada.testwell@example.com | (555) 010-0142 | github.com/ada-testwell-example
+
+SUMMARY
+Machine learning engineer with 3 years of experience building NLP and LLM-powered products.
+Comfortable owning a model from notebook to production API.
+
+SKILLS
+Languages: Python, SQL, Bash
+ML/AI: PyTorch, scikit-learn, Hugging Face, LangChain, RAG, prompt engineering
+Data: Pandas, NumPy, Jupyter
+Infra: Docker, FastAPI, AWS, GitHub Actions, PostgreSQL, Pinecone
+
+EXPERIENCE
+Machine Learning Engineer, Imaginary Analytics Ltd. (2022 - Present)
+- Built a retrieval-augmented generation assistant over 12,000 internal documents, cutting support lookup time by 35%.
+- Fine-tuned a PyTorch text classifier that improved ticket routing accuracy from 81% to 92%.
+- Deployed models as FastAPI services in Docker on AWS, serving 40k requests per day.
+- Automated evaluation runs with GitHub Actions, reducing manual QA effort by 6 hours per week.
+- Mentored 2 junior engineers on code review and testing practices.
+
+Data Science Intern, Placeholder Labs (2021 - 2022)
+- Cleaned and analysed survey data with Pandas and NumPy for 3 product teams.
+- Designed a scikit-learn churn model with 0.84 AUC that was adopted by the retention team.
+
+PROJECTS
+Resume Q&A Bot - LangChain + Pinecone vector search with a small evaluation harness of 50 questions.
+Ticket Summariser - Hugging Face model served through a FastAPI endpoint with PostgreSQL logging.
+
+EDUCATION
+B.Tech in Computer Science, Example Institute of Technology, 2021, CGPA 8.6/10
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner (sample)

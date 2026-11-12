@@ -1,0 +1,98 @@
+{
+  "_comment": "Target role profiles. Every skill name must exist in skills.json (a test checks this). 'core' = what the role needs on day one; 'bonus' = what makes a candidate stand out. 'related' links skills so 'learn next' can say 'you know X, so Y is a short step'.",
+  "roles": [
+    {
+      "id": "ml-engineer",
+      "name": "ML Engineer",
+      "description": "Builds, trains and ships machine-learning and LLM features.",
+      "core": ["Python", "Machine Learning", "PyTorch", "scikit-learn", "Pandas", "NumPy", "SQL", "Git", "Docker"],
+      "bonus": ["TensorFlow", "Hugging Face", "LLMs", "RAG", "MLOps", "MLflow", "AWS", "FastAPI", "Natural Language Processing", "Deep Learning"]
+    },
+    {
+      "id": "data-analyst",
+      "name": "Data Analyst",
+      "description": "Turns data into reports and decisions with SQL, spreadsheets and dashboards.",
+      "core": ["SQL", "Excel", "Python", "Pandas", "Data Visualization", "Statistics", "Tableau", "Power BI"],
+      "bonus": ["A/B Testing", "Data Cleaning", "Matplotlib", "Seaborn", "Looker", "BigQuery", "Snowflake", "Stakeholder Management", "Presentation Skills"]
+    },
+    {
+      "id": "data-scientist",
+      "name": "Data Scientist",
+      "description": "Builds statistical and machine-learning models to answer business questions.",
+      "core": ["Python", "Statistics", "Machine Learning", "Pandas", "NumPy", "scikit-learn", "SQL", "Data Visualization"],
+      "bonus": ["Feature Engineering", "A/B Testing", "Deep Learning", "PyTorch", "Matplotlib", "Jupyter", "Time Series Forecasting", "XGBoost", "Natural Language Processing"]
+    },
+    {
+      "id": "backend-python",
+      "name": "Backend / Python Developer",
+      "description": "Builds APIs and services in Python on top of databases and queues.",
+      "core": ["Python", "REST APIs", "SQL", "PostgreSQL", "Git", "Docker", "Unit Testing", "Linux"],
+      "bonus": ["FastAPI", "Django", "Flask", "Redis", "Celery", "CI/CD", "AWS", "pytest", "Microservices", "Kafka"]
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend Developer",
+      "description": "Builds accessible, responsive user interfaces for the web.",
+      "core": ["JavaScript", "HTML", "CSS", "React", "Git", "Responsive Design", "REST APIs"],
+      "bonus": ["TypeScript", "Next.js", "Redux", "Tailwind CSS", "Jest", "Cypress", "Accessibility", "Vite", "Webpack", "Figma"]
+    },
+    {
+      "id": "devops-cloud",
+      "name": "DevOps / Cloud Engineer",
+      "description": "Automates delivery and runs reliable infrastructure in the cloud.",
+      "core": ["Linux", "Docker", "Kubernetes", "Terraform", "AWS", "CI/CD", "Git", "Bash"],
+      "bonus": ["Ansible", "Jenkins", "GitHub Actions", "Prometheus", "Grafana", "Helm", "Python", "Nginx", "Azure", "Google Cloud"]
+    },
+    {
+      "id": "full-stack",
+      "name": "Full-Stack Developer",
+      "description": "Builds both the user interface and the server behind it.",
+      "core": ["JavaScript", "HTML", "CSS", "React", "Node.js", "SQL", "REST APIs", "Git"],
+      "bonus": ["TypeScript", "Next.js", "PostgreSQL", "MongoDB", "Docker", "Express.js", "GraphQL", "CI/CD", "AWS", "Unit Testing"]
+    },
+    {
+      "id": "automation-rpa",
+      "name": "Automation / RPA Engineer",
+      "description": "Automates repetitive business and IT work with scripts, workflow tools and APIs.",
+      "core": ["Python", "Bash", "REST APIs", "SQL", "Git", "Excel", "Selenium"],
+      "bonus": ["UiPath", "Power Automate", "Zapier", "n8n", "Airflow", "Postman", "Jira", "Linux", "Generative AI", "Prompt Engineering", "ETL"]
+    }
+  ],
+  "related": {
+    "Kubernetes": ["Docker", "Helm"],
+    "Terraform": ["AWS", "Ansible", "CloudFormation"],
+    "AWS": ["Azure", "Google Cloud"],
+    "Azure": ["AWS", "Google Cloud"],
+    "Google Cloud": ["AWS", "Azure"],
+    "PyTorch": ["TensorFlow", "Keras", "Deep Learning"],
+    "TensorFlow": ["PyTorch", "Keras", "Deep Learning"],
+    "Machine Learning": ["scikit-learn", "Statistics"],
+    "scikit-learn": ["Machine Learning", "Pandas"],
+    "Deep Learning": ["PyTorch", "TensorFlow"],
+    "Pandas": ["NumPy", "SQL"],
+    "NumPy": ["Pandas", "SciPy"],
+    "SQL": ["PostgreSQL", "MySQL", "Pandas"],
+    "Tableau": ["Power BI", "Looker"],
+    "Power BI": ["Tableau", "Excel"],
+    "Excel": ["Power BI", "SQL"],
+    "React": ["JavaScript", "TypeScript", "Redux"],
+    "TypeScript": ["JavaScript"],
+    "Next.js": ["React"],
+    "Node.js": ["JavaScript", "Express.js"],
+    "FastAPI": ["Flask", "Django", "Python"],
+    "Docker": ["Linux", "Kubernetes"],
+    "CI/CD": ["GitHub Actions", "Jenkins", "GitLab CI"],
+    "GitHub Actions": ["CI/CD", "Git"],
+    "RAG": ["LLMs", "Vector Databases", "LangChain"],
+    "LLMs": ["Prompt Engineering", "Natural Language Processing"],
+    "MLOps": ["Docker", "MLflow", "CI/CD"],
+    "MLflow": ["MLOps", "Python"],
+    "UiPath": ["Power Automate", "Zapier"],
+    "Power Automate": ["UiPath", "Zapier", "n8n"],
+    "Selenium": ["Python", "Cypress"],
+    "Unit Testing": ["pytest", "Jest"],
+    "Statistics": ["A/B Testing", "Machine Learning"],
+    "Data Visualization": ["Tableau", "Matplotlib", "Power BI"],
+    "REST APIs": ["FastAPI", "Flask", "Postman"]
+  }
+}

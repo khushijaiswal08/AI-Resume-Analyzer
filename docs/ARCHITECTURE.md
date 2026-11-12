@@ -69,3 +69,97 @@ invents contact details.
 - **No database, no storage.** Uploads are processed in memory and discarded, which removes a
   whole class of privacy questions.
 - **The score is a heuristic.** It is not the algorithm of any real applicant tracking system.
+
+# v2 additions
+
+The v1 pipeline above is unchanged. v2 adds ten deterministic or guarded layers around it. The
+principle is the same: **rules first, LLM second, and the LLM never changes a score.** All
+layers are pure functions in their own module with their own tests.
+
+## v2 layers
+
+```mermaid
+flowchart TD
+    T[resume text + line offsets<br/>sections.split_lines] --> V1
+    T --> SK[skills.find_skill_mentions<br/>skills with offsets, capped at 500]
+    T --> RD[redaction.redact]
+    subgraph Deterministic
+      V1[L1 bullets.py<br/>bullet score 0-100 + hint]
+      V2[L2 ats_checks.py<br/>pass / warn / fail checklist]
+      V3[L3 jd.py<br/>required vs preferred, years, seniority]
+      V4[L4 roles.py<br/>role fit + learn next]
+      V5[L5 evidence.py<br/>lines + offsets per criterion]
+      V6[L6 readability.py<br/>passive, buzzwords, repeated verbs]
+      V7[L7 skill_evidence.py<br/>demonstrated vs listed]
+      V8[L8 privacy.py<br/>exact redacted preview]
+      V10[L10 readiness.py<br/>weighted composite]
+    end
+    SK --> V7 --> V3
+    SK --> V4
+    V1 --> V5
+    V1 --> V6
+    V1 --> V10
+    V2 --> V10
+    V3 --> V10
+    V4 --> V10
+    RD --> V8
+    RD --> V9[L9 rewrites.py + service.py<br/>LLM extras, guarded]
+    V1 --> V9
+    V10 --> R[AnalysisResult<br/>v1 fields + v2 fields]
+    V5 --> R
+    V9 --> R
+```
+
+| Layer | Module | What it adds |
+|---|---|---|
+| L1 | `bullets.py` | per-bullet score on action verb, metric, length, weak phrases, buzzwords, pronouns, tense; template hint, never invented numbers |
+| L2 | `ats_checks.py` | parse-ability checklist (contact, headings, date styles, glyphs, long lines, length, section order) |
+| L3 | `jd.py` | required vs preferred (2x weight), "X or Y" groups, years asked, seniority, where-to-add hints |
+| L4 | `roles.py`, `data/roles.json` | 8 role profiles, role-fit %, ranked "learn next" |
+| L5 | `evidence.py` | lines that earned or lost points per score criterion, with offsets |
+| L6 | `readability.py` | passive-voice rate, buzzword density, repeated opening verbs |
+| L7 | `skill_evidence.py` | each skill demonstrated in Experience/Projects or only listed |
+| L8 | `privacy.py` | the exact redacted text an LLM would see, with counts |
+| L9 | `rewrites.py`, `service.py` | tailored rewrites of up to 3 weakest bullets and a 3-sentence first impression, guarded |
+| L10 | `readiness.py` | composite readiness beside (not instead of) the v1 ATS-style score; weights shown |
+
+## Endpoints
+
+| Endpoint | Notes |
+|---|---|
+| `POST /api/analyze` | multipart `resume`, optional `job_description`, optional `role`; v1 fields unchanged, v2 fields added |
+| `GET /api/roles` | role ids for the selector |
+| `GET /api/sample` | fictional sample resume and JD |
+| `GET /api/health` | status, `llm_configured`, `version` |
+| `GET /openapi.json` | schema; `/docs` and `/redoc` are disabled because they load CDN scripts the CSP forbids |
+
+## Offset contract
+
+Every `start` / `end` in the response (evidence, bullets, skill evidence, rewrites, checks) is a
+Python string index into `AnalysisResult.resume_text`, and `resume_text[start:end]` equals the
+`text` next to it. The UI highlights by slicing that same string. Emails and URLs are blanked
+with spaces of equal length (not removed) before skill matching so offsets stay valid. Tested by
+`test_offsets_in_every_field_index_into_resume_text`.
+
+## Public-deploy hardening
+
+| Measure | Where | Test |
+|---|---|---|
+| Per-client in-memory sliding-window rate limit (default 20 per 600 s), `429` with `Retry-After`, bounded memory | `ratelimit.py`, `api.py` | `test_ratelimit.py` |
+| `X-Forwarded-For` is trusted only with `TRUST_PROXY=true`, and only its last entry | `ratelimit.client_key` | `test_client_key_trusts_forwarded_header_only_when_told_to`, `test_forged_forwarded_header_does_not_bypass_when_proxy_is_not_trusted` |
+| Security headers on every response: strict CSP (no inline scripts, same-origin only), `nosniff`, `no-referrer`, `X-Frame-Options: DENY`, `Permissions-Policy`; `Cache-Control: no-store` on `/api/` | `api.py` | `test_security_headers_on_every_kind_of_response`, `test_error_responses_also_carry_headers` |
+| CORS off unless `CORS_ORIGINS` is set | `api.py`, `config.py` | `test_cors_is_disabled_by_default_and_opt_in` |
+| `PORT` respected | `config.py`, `cli.py`, Dockerfile | `test_port_env_is_respected` |
+| At most 500 skill mentions per document, and linear-time longest-match filtering, so one large input cannot hog the worker | `skills.find_skill_mentions`, `jd._collect_asks` | `test_mentions_are_capped_per_document` |
+| User text only enters the page through `textContent` (no `innerHTML`) | `static/*.js` | `test_scripts_never_use_innerhtml` |
+| No storage, no analytics, no external requests | whole app | `test_every_script_loaded_by_page_is_same_origin` |
+
+## Additional guardrails (v2)
+
+| # | Guardrail | Where | Test |
+|---|---|---|---|
+| 10 | A bullet rewrite may not contain a number, number word ("three", "doubled"), fraction ("½") or taxonomy skill that the original lacks, may not leak contact details, and must be about a bullet that was sent; violators are dropped with a warning. The number check is best-effort: it cannot catch every phrasing, so rewrites are always shown beside the original | `rewrites.ground_rewrites`, `llm/guard.numbers_in` | `test_rewrite_that_adds_a_number_is_dropped`, `test_rewrite_that_adds_a_number_word_or_fraction_is_dropped`, `test_numbers_in_sees_digits_words_and_symbols`, `test_rewrite_that_adds_a_skill_is_dropped`, `test_rewrite_with_contact_details_is_dropped` |
+| 11 | Only the weakest bullets (at most 3), already redacted, go to the LLM, inside their own delimiters that the text cannot close | `service.py`, `llm/prompts.py` | `test_weak_bullets_are_sent_inside_their_own_delimiters`, `test_weak_bullets_cannot_close_their_wrapper`, `test_llm_never_sees_contact_details_in_bullets` |
+| 12 | The recruiter's first impression is cut to 3 sentences, re-redacted, and sentences naming ungrounded skills are removed | `service.apply_guardrails` | `test_first_impression_is_kept_trimmed_to_three_sentences_and_redacted`, `test_first_impression_sentences_with_ungrounded_skills_are_removed` |
+| 13 | LLM output never changes any score, including the new bullet, readiness and role-fit scores | `service.analyze_text` | `test_llm_output_never_changes_any_score` |
+| 14 | The privacy view shows the same redaction that runs before a real LLM call | `privacy.py` | `test_readiness_privacy.py` |
