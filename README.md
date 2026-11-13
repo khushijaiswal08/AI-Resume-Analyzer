@@ -6,7 +6,7 @@
 
 **Try a sample resume:** open the app and press **Try a sample resume**. No upload, no account, no API key. The sample is fictional.
 
-Live demo: [TODO]
+Live demo: [https://ai-resume-analyzer-teps.onrender.com](https://ai-resume-analyzer-teps.onrender.com) (free hosting: the first visit after a quiet period can take up to a minute while it wakes up)
 
 ## The problem
 

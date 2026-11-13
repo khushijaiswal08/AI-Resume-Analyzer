@@ -1,5 +1,5 @@
 # Render Blueprint for the AI Resume Analyzer (free web service, built from the Dockerfile).
-# UNTESTED: written without Docker or a Render account available. See DEPLOY.md.
+# Deployed once on Render's free tier (2026-11-13). Not built locally with Docker. See DEPLOY.md.
 services:
   - type: web
     name: ai-resume-analyzer

@@ -1,9 +1,9 @@
 # Deploying to Render (free tier)
 
-> **Untested.** `render.yaml`, this guide and the `Dockerfile` were written without Docker
-> installed and without a Render account, so none of them has been built or run. The app itself
-> runs locally (`resume-analyzer serve`) and is covered by the test suite. Expect to fix small
-> things on the first deploy, and update this page when you do.
+> **Status.** `render.yaml` and the `Dockerfile` were deployed once on Render's free tier on
+> 2026-11-13 (Option A, using the repository's public URL). The live site passed a health check, a
+> sample analysis and a security-header check. They were written without Docker installed locally,
+> so a local `docker build` has still not been run.
 
 ## Option A: Blueprint from the Dockerfile
 
@@ -63,4 +63,4 @@ rate-limit counters live in memory, so they also reset on every restart.
 - Open the URL and press **Try a sample resume**.
 - Check `/api/health`, and check the security headers on the page (for example in the browser's
   network tab).
-- Put the live URL in the README's `Live demo` line, replacing `[TODO]`.
+- Put the live URL in the README's `Live demo` line.
