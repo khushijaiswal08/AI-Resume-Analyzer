@@ -68,10 +68,14 @@ REQUIRED_CUE = re.compile(
     re.IGNORECASE,
 )
 
+# Same language as the original pattern, but without the two adjacent "\s*" runs that made
+# "12" followed by a long run of spaces quadratic (about 10 s for a 20,000-character job
+# description, and the whole server stalls while it runs).
 YEARS_RE = re.compile(
-    r"(?P<n>\d{1,2})\s*(?:\+|\s*(?:-|to)\s*\d{1,2})?\s*(?:years?|yrs?)\b(?!\s*(?:ago|old))",
+    r"(?P<n>\d{1,2})(?:\s*\+|\s*(?:-|to)\s*\d{1,2})?\s*(?:years?|yrs?)\b(?!\s*(?:ago|old))",
     re.IGNORECASE,
 )
+MAX_YEARS_ASKS = 20  # a real job description has a handful; more would only bloat the reply
 # Title cues first: "Senior ML Engineer". Body cues only for unambiguous phrases.
 TITLE_SENIORITY = (
     ("lead", re.compile(r"\b(?:lead|principal|staff|head of|architect)\b", re.IGNORECASE)),
@@ -211,27 +215,38 @@ def _first_position(name: str, asks: list[_Ask]) -> int:
 
 
 def _snippet(text: str, start: int, end: int, before: int = 10, after: int = 25) -> str:
-    """A little context around text[start:end]: widened to whole words, never past the line."""
+    """A little context around text[start:end]: widened to whole words, never past the line.
+
+    Widening is capped (a "word" can be the whole line, e.g. "5yrs-5yrs-5yrs-...") and the
+    result is cut to 160 characters, so one hit can never copy a huge line into the reply.
+    """
     line_start = text.rfind("\n", 0, start) + 1
     line_end = text.find("\n", end)
     line_end = len(text) if line_end == -1 else line_end
     lo, hi = max(line_start, start - before), min(line_end, end + after)
-    while lo > line_start and not text[lo - 1].isspace():
-        lo -= 1  # a cut inside a word: take the whole word
-    while hi < line_end and not text[hi].isspace():
+    floor, ceiling = max(line_start, lo - 30), min(line_end, hi + 30)
+    while lo > floor and not text[lo - 1].isspace():
+        lo -= 1  # a cut inside a word: take the whole word (up to 30 characters)
+    while hi < ceiling and not text[hi].isspace():
         hi += 1
-    return " ".join(text[lo:hi].split())
+    return " ".join(text[lo:hi].split())[:160]
 
 
 def find_years(jd_text: str) -> list[YearsAsk]:
     """Every "N years" / "N+ years" / "3-5 years" phrase, with a little surrounding text."""
-    asks = []
-    for match in YEARS_RE.finditer(jd_text):
-        years = int(match["n"])
-        if years > 40:
-            continue
-        asks.append(YearsAsk(years=years, text=_snippet(jd_text, match.start(), match.end())))
-    return asks
+    hits = [
+        (int(match["n"]), match.start(), match.end())
+        for match in YEARS_RE.finditer(jd_text)
+        if int(match["n"]) <= 40
+    ]
+    if len(hits) > MAX_YEARS_ASKS:
+        # Keep the first hits, plus the largest one: years_required is the maximum asked.
+        largest = max(hits, key=lambda hit: hit[0])
+        kept = hits[:MAX_YEARS_ASKS]
+        if largest not in kept:
+            kept[-1] = largest
+        hits = sorted(kept, key=lambda hit: hit[1])
+    return [YearsAsk(years=n, text=_snippet(jd_text, s, e)) for n, s, e in hits]
 
 
 def detect_seniority(jd_text: str, years_required: int | None) -> str | None:

@@ -9,6 +9,7 @@ import time
 
 import pytest
 
+from resume_analyzer.jd import find_years
 from resume_analyzer.llm.prompts import neutralise_delimiters
 from resume_analyzer.sections import detect_sections
 from resume_analyzer.service import analyze_text
@@ -60,3 +61,30 @@ def test_job_description_with_a_long_gap_between_skills_is_fast():
 )
 def test_job_description_with_thousands_of_alternatives_is_fast(jd):
     assert _seconds(lambda: analyze_text(SAMPLE_RESUME, jd)) < 3.0
+
+
+@pytest.mark.parametrize(
+    "jd",
+    ["12" + " " * 19_997 + "x", "1" + "\n" * 19_998 + "x", "2020" + " " * 19_995 + "x"],
+    ids=["spaces", "newlines", "year-then-spaces"],
+)
+def test_years_of_experience_search_is_fast_on_a_long_whitespace_run(jd):
+    assert _seconds(lambda: find_years(jd)) < 1.0
+
+
+@pytest.mark.parametrize("jd", ["5yrs-" * 4_000, "1yr-" * 5_000], ids=["five-yrs", "one-yr"])
+def test_thousands_of_years_phrases_give_a_small_reply(jd):
+    asks = find_years(jd)
+    assert len(asks) <= 20
+    assert all(len(ask.text) <= 160 for ask in asks)
+
+
+def test_largest_years_ask_is_kept_even_when_the_list_is_capped():
+    jd = "1yr-" * 5_000 + " we need 12 years of experience"
+    asks = find_years(jd)
+    assert max(ask.years for ask in asks) == 12
+
+
+def test_normal_years_phrases_are_unchanged():
+    asks = find_years("Needs 3-5 years of Python and 7+ years leadership; 2 years ago")
+    assert [ask.years for ask in asks] == [3, 7]

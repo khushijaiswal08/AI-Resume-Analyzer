@@ -209,3 +209,91 @@ def test_redaction_is_fast_on_more_hostile_input(hostile):
     started = time.perf_counter()
     redact(hostile)
     assert time.perf_counter() - started < 2.0
+
+
+# --- Regressions found by independent review of the second round ---------------------------
+
+
+@pytest.mark.parametrize(
+    "glued",
+    ["jane.doe@gmail.com9876543210", "jane.doe@gmail.com2024", "jane.doe@gmail.com_x"],
+)
+def test_email_glued_to_following_text_is_still_redacted(glued):
+    text, counts = redact(glued)
+    assert "@" not in text and "gmail" not in text
+    assert counts.emails == 1
+
+
+def test_glued_header_line_keeps_phone_and_url_counts():
+    header = (
+        "Mansarovar,Jaipur,Rajasthan-302020|+91-9876543210|Phone9876543210|"
+        "khushi.jaiswal@gmail.com|linkedin.com/in/khushi-jaiswal"
+    )
+    text, counts = redact(header)
+    assert (counts.emails, counts.phones, counts.urls) == (1, 2, 1)
+    assert text.startswith("Mansarovar,Jaipur,Rajasthan-302020|")
+
+
+def test_url_containing_an_at_sign_is_a_url_not_an_email():
+    url = "https://medium.com/@john.doe/how-i-built-an-explainable-resume-analyzer-with-fastapi-and-python-3b9a1c2d4e5f"
+    text, counts = redact(url)
+    assert text == "[URL]"
+    assert (counts.emails, counts.urls) == (0, 1)
+
+
+def test_oversized_address_starting_with_an_at_sign_is_removed():
+    text, counts = redact("@" + "a" * 70 + "@gmail.com")
+    assert "aaaa" not in text
+    assert counts.emails == 1
+
+
+@pytest.mark.parametrize(
+    "safe",
+    [
+        "(1) 2019-2021",
+        "(1) 100000 users",
+        "(3) 12345",
+        "Table (3) 2020-2021 results",
+        "References: (1) 2019-2023 B.Tech, (2) 2023-2025 M.Tech",
+        "Stipend: Rs. 62500-87500",
+        "Rs 62500-87500",
+        "INR 62500-87500",
+        "₹ 62500 - 87500",
+        "CTC Rs. 65500 - 75500 pm",
+        "Credential ID: UC-5d2c48c0-b065-9454-1840-dc0dafed5668",
+    ],
+)
+def test_review_round_two_false_positives_stay_fixed(safe):
+    text, counts = redact(safe)
+    assert text == safe
+    assert counts.model_dump() == {"emails": 0, "phones": 0, "urls": 0}
+
+
+@pytest.mark.parametrize(
+    "landline",
+    ["Ph: 022 20350636", "Ph: 022-20990695", "Ph: 011-20120512", "Tel: 080-20450315"],
+)
+def test_landline_tails_that_only_look_like_dates_are_still_redacted(landline):
+    text, counts = redact(landline)
+    assert counts.phones == 1
+    assert not any(ch.isdigit() for ch in text)
+
+
+@pytest.mark.parametrize(
+    "phone",
+    ["+33 1 23 45 67 89", "+33 6 12 34 56 78", "+91 98 76 54 32 10", "+91 98765 43210"],
+)
+def test_pair_grouped_and_unicode_spaced_numbers(phone):
+    text, counts = redact(f"Call {phone}")
+    assert text == "Call [PHONE]"
+
+
+@pytest.mark.parametrize("site", ["ab.tech/portfolio", "Website: ab.tech", "me.tech/resume"])
+def test_real_tech_domains_are_still_links(site):
+    _, counts = redact(site)
+    assert counts.urls == 1
+
+
+def test_non_ascii_top_level_domain_email_is_redacted():
+    text, counts = redact("jane@example.рф")
+    assert text == "[EMAIL]" and counts.emails == 1
