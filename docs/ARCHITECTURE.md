@@ -33,7 +33,7 @@ so the web app, the CLI and the tests all exercise the same code path.
 
 | # | Guardrail | Where | Test |
 |---|---|---|---|
-| 1 | PII (emails, phones, URLs) redacted before any prompt is built | `redaction.py`, `service.analyze_text` | `test_llm_never_sees_contact_details` |
+| 1 | Contact details (emails, phone numbers incl. Indian formats, URLs) redacted before any prompt is built; names and other text are not removed | `redaction.py`, `service.analyze_text` | `test_llm_never_sees_contact_details` |
 | 2 | Prompt-injection defence: untrusted text wrapped in `<resume>` / `<job_description>`; system instruction says it is data; delimiter tags inside the text are neutralised | `llm/prompts.py` | `test_untrusted_text_is_wrapped_in_delimiters`, `test_resume_cannot_close_its_own_delimiter`, `test_injection_cannot_change_the_score` |
 | 3 | Structured output: response must validate against `LLMInsights`; invalid JSON or schema errors are retried up to 2 times, then the LLM step falls back | `llm/base.generate_with_retries` | `test_invalid_json_is_retried_then_succeeds`, `test_gives_up_after_two_retries_and_falls_back` |
 | 4 | Grounding: each interview question's skill tag, and every technical skill the extractor finds in the summary, suggestions and question text, must be a deterministically extracted resume skill or a JD skill; ungrounded questions and suggestions are dropped and summary sentences removed, with a warning (soft skills are not checked) | `service.apply_guardrails`, `service._ungrounded_skills` | `test_ungrounded_questions_are_dropped_with_warning`, `test_ungrounded_skill_in_summary_sentence_is_removed`, `test_ungrounded_skill_in_suggestion_is_dropped`, `test_question_tagged_with_grounded_skill_but_asking_about_another_is_dropped` |
