@@ -51,9 +51,17 @@ MAX_HEADING_WORDS = 5
 _HEADING_LOOKUP = {alias: name for name, aliases in SECTION_ALIASES.items() for alias in aliases}
 
 
+_LEADING_DECORATION = re.compile(r"[\s#*=_\-|•–—]*")
+_LEADING_DECORATION_REVERSED = re.compile(r"[\s:#*=_\-|•–—]*")  # applied to the reversed line
+
+
 def _clean_heading(line: str) -> str:
     # Strip decoration such as "## ", "SKILLS:", "--- Projects ---", "Experience —".
-    line = re.sub(r"^[\s#*=_\-|•–—]+|[\s:#*=_\-|•–—]+$", "", line)
+    # Two anchored scans, one per end. The old single pattern with an "|" and a "$" alternative
+    # re-scanned a long run of spaces or dashes from every start position (quadratic: about 15 s
+    # for one 50,000-character line, and the whole server stalls while it runs).
+    line = line[_LEADING_DECORATION.match(line).end() :]
+    line = line[: len(line) - _LEADING_DECORATION_REVERSED.match(line[::-1]).end()]
     return re.sub(r"\s+", " ", line).lower()
 
 

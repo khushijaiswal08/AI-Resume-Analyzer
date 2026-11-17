@@ -30,7 +30,12 @@ Output rules:
   is not in the original bullet. If the bullet has no number, do not invent one.
 """
 
-_DELIMITER_TAG = re.compile(r"<\s*/?\s*(resume|job_description|weak_bullets)\s*>", re.IGNORECASE)
+# "<", optional spaces, an optional "/" (with optional spaces after it), the tag name, ">".
+# The earlier "\s*/?\s*" had two adjacent optional-space runs, which made "<" followed by a
+# long run of spaces quadratic (about 4 s at 20,000 characters).
+_DELIMITER_TAG = re.compile(
+    r"<\s*(?:/\s*)?(resume|job_description|weak_bullets)\s*>", re.IGNORECASE
+)
 
 
 def neutralise_delimiters(text: str) -> str:

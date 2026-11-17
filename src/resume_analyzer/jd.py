@@ -12,6 +12,7 @@ be read and argued with. They will not understand every JD, and the notes say wh
 """
 
 import re
+from bisect import bisect_right
 from dataclasses import dataclass
 
 from resume_analyzer.schemas import JDAnalysis, JDRequirement, SkillEvidence, YearsAsk
@@ -84,7 +85,9 @@ TITLE_SENIORITY = (
 BODY_ENTRY = re.compile(r"\b(?:entry[- ]level|freshers?|new grad(?:uate)?s?)\b", re.IGNORECASE)
 
 # Link between two consecutive skill mentions. "or"-type links make alternatives.
-_OR_LINK = re.compile(r"^\s*(?:,\s*)?(?:or|/|\|)\s*$|^\s*,?\s*and/or\s*$", re.IGNORECASE)
+# Matched against the link with its outer whitespace already stripped: the old pattern had two
+# adjacent "\s*" runs, which is quadratic on a long gap between two skill mentions.
+_OR_LINK = re.compile(r"^(?:,\s*)?(?:or|/|\|)$|^,?\s*and/or$", re.IGNORECASE)
 _OR_WORD = re.compile(r"\bor\b", re.IGNORECASE)  # the word "or", unlike "/"
 _COMMA_LINK = re.compile(r"^\s*,\s*$")
 _CLAUSE_END = re.compile(r"[;.](?:\s|$)")
@@ -165,10 +168,14 @@ def _collect_asks(jd_text: str) -> list[_Ask]:
         # Split the line into clauses so "Python is a must; Docker is a plus" gets two priorities.
         bounds = [line_start] + [line_start + m.end() for m in _CLAUSE_END.finditer(raw)]
         bounds.append(position)
+        priorities: dict[int, str] = {}  # one cue search per clause, not one per mention
         for mention in line_mentions:
-            index = max(i for i, b in enumerate(bounds[:-1]) if b <= mention.start)
-            clause = jd_text[bounds[index] : bounds[index + 1]]
-            asks.append(_Ask(mention, _clause_priority(clause, section)))
+            # The clause is the last boundary at or before the mention (binary search).
+            index = bisect_right(bounds, mention.start, 0, len(bounds) - 1) - 1
+            if index not in priorities:
+                clause = jd_text[bounds[index] : bounds[index + 1]]
+                priorities[index] = _clause_priority(clause, section)
+            asks.append(_Ask(mention, priorities[index]))
     return asks
 
 
@@ -183,7 +190,7 @@ def _alternative_groups(asks: list[_Ask], jd_text: str) -> list[list[str]]:
     for previous, ask in zip([None, *asks], asks, strict=False):  # (previous, current)
         name = ask.mention.name
         link = "" if previous is None else jd_text[previous.mention.end : ask.mention.start]
-        if previous is not None and _OR_LINK.match(link):
+        if previous is not None and _OR_LINK.match(link.strip()):
             absorb = comma_run if _OR_WORD.search(link) else [previous.mention.name]
             linked = {*absorb, name}
             # Merge with any group that shares a skill, so groups never overlap.
